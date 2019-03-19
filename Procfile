@@ -1,1 +1,1 @@
-web: python starterbot.py
+worker: python starterbot.py
