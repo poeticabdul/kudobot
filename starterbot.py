@@ -9,7 +9,7 @@ from slackclient import SlackClient
 
 
 
-slack_client = SlackClient('xoxb-265807799632-571381220640-N59oCs1d6eWfXyBq4Lg3BIHO')
+slack_client = SlackClient('xoxp-4131852739-17698176067-582095119573-843596908dc34bde1cab9924d3a9a431')
 
 USERNAME_REGEX = "^<@U$"
 
