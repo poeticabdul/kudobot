@@ -3,6 +3,7 @@ import time
 import re
 import datetime
 import csv
+import pandas as pd
 from slackclient import SlackClient
 
 
@@ -25,7 +26,6 @@ def get_all_existing_users():
 	if api_call.get('ok'):
 		users = api_call['members']
 		for user in users:
-			# print(user.get('real_name'))
 			all_slack_users.append({"user_id": user['id'], "real_name": user['real_name']})
 
 		return all_slack_users
@@ -62,16 +62,35 @@ def append_to_existing_csv(row):
 
 
 def get_the_leaderboard():
-	import pandas as pd 
+	 
 	data = pd.read_csv("kudos.csv") 
 	lb = data['receiver_name'].value_counts()
 	
 	receiver = lb.keys().tolist()
 	kudos_no = lb.tolist()
 
-	print (receiver, kudos_no)
+	results = [a for a in zip(receiver, kudos_no)]
 
-	return receiver, kudos_no
+	return results
+
+
+def has_posted_today(giver_user_id):
+	data = pd.read_csv("kudos.csv") 
+
+	for key, row in data.iterrows():
+		kudos_date_obj = datetime.datetime.strptime(row['date'], '%Y-%m-%d')
+
+		# print(row['giver_user_id'], giver_user_id)
+		# print("------------")
+		# print(kudos_date_obj.date(), datetime.datetime.today().date())
+
+
+		if row['giver_user_id'] == giver_user_id and kudos_date_obj.date() == datetime.datetime.today().date():
+
+			return True
+
+	return False
+	
 
 
 
@@ -91,7 +110,11 @@ def parse_slack_events(slack_events):
 
 			first_word_in_text = words_in_text[0]
 
-			second_word_in_text = words_in_text[1]
+			if len(words_in_text) > 1:
+
+				second_word_in_text = words_in_text[1]
+			else:
+				second_word_in_text = "nothing"
 
 			regx = re.compile(USERNAME_REGEX)
 
@@ -101,7 +124,6 @@ def parse_slack_events(slack_events):
 				for word in words_in_text:
 
 					if regx.match(word[0:3]):
-						# print("there is a username: ", word)
 
 						giver = event["user"]
 						receiver = word[2:-1]
@@ -109,26 +131,39 @@ def parse_slack_events(slack_events):
 						giver_name = get_a_user_info(giver)
 						receiver_name = get_a_user_info(receiver)
 
-						given_on = datetime.datetime.now()
+						posted = has_posted_today(giver)
 
-						row_data = [receiver, receiver_name, giver, given_on]
+						print(posted)
 
-						append_to_existing_csv(row_data)
+						if posted != True:
 
-						message = ':thumbsup: `{}` has just received a `Kudo` from `{}`. Keep the Kudos coming in.'.format(receiver_name, giver_name)
+							given_on = datetime.datetime.today().date()
 
-						send_response_to_channel(message, event["channel"])
+							row_data = [receiver, receiver_name, giver, given_on]
+
+							append_to_existing_csv(row_data)
+
+							message = ':thumbsup: `{}` has just received a `Kudo` from `{}`. Keep the Kudos coming in.'.format(receiver_name, giver_name)
+
+							send_response_to_channel(message, event["channel"])
+						else:
+							message = '@{} you have already given out a Kudos today. `Great job!`'.format(giver_name)
+
+							send_response_to_channel(message, event["channel"])
+
 
 			elif regx.match(first_word_in_text[0:3]) and second_word_in_text.lower() == "leaderboard":
-				# print("----- they want leader board ----")
 
-				receiver, kudos = get_the_leaderboard()
+				lb = get_the_leaderboard()
 
-				# send_response_to_channel(lb, event["channel"])
+				send_response_to_channel(lb, event["channel"])
 
 			elif regx.match(first_word_in_text[0:3]) and second_word_in_text.lower() == "help":
 
-				message = "HELP - Start your message with Kudos, mention the receiver and say why. For example: `Kudos to @naanamensa for helping me out with my issue today.` "
+				message = """- Start your message with Kudos, mention the receiver and say why. For example: `Kudos to @naanamensa for helping me out with my issue today.` 
+- Want help? Do `@kudobot help`
+- Want the leaderboard? Do `@kudobot leaderboard`
+					"""
 
 				send_response_to_channel(message, event["channel"])
 				
@@ -139,14 +174,11 @@ def parse_slack_events(slack_events):
 if __name__ == "__main__":
 
 	if slack_client.rtm_connect():
-		print("Kudobott connected and running!")
+		print("Kudobot connected and running!")
 
 		while True:
 			parse_slack_events(slack_client.rtm_read())
 
-			# get_the_leaderboard()
-
-			# print(slack_client.rtm_read())
 			time.sleep(1)
 	else:
 		print("Connection failed. Exception traceback printed above.")
