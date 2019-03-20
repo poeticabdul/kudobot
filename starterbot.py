@@ -9,7 +9,9 @@ from slackclient import SlackClient
 
 
 
-slack_client = SlackClient('xoxb-4131852739-583201881750-O06yuloGunK4Y6GlNX5VqwTC')
+
+slack_client = SlackClient('')
+
 
 USERNAME_REGEX = "^<@U$"
 
@@ -133,19 +135,25 @@ def parse_slack_events(slack_events):
 
 						posted = has_posted_today(giver)
 
-						print(posted)
-
 						if posted != True:
 
-							given_on = datetime.datetime.today().date()
+							if giver != receiver:
 
-							row_data = [receiver, receiver_name, giver, given_on]
+								given_on = datetime.datetime.today().date()
 
-							append_to_existing_csv(row_data)
+								row_data = [receiver, receiver_name, giver, given_on]
 
-							message = ':thumbsup: `{}` has just received a `Kudo` from `{}`. Keep the Kudos coming in.'.format(receiver_name, giver_name)
+								append_to_existing_csv(row_data)
 
-							send_response_to_channel(message, event["channel"])
+								message = ':thumbsup: `{}` has just received a `Kudo` from `{}`. Keep the Kudos coming in.'.format(receiver_name, giver_name)
+
+								send_response_to_channel(message, event["channel"])
+
+							else:
+								message = '`Dissapointed!` @{} why do you want to game the system? Huh.'.format(giver_name)
+
+								send_response_to_channel(message, event["channel"])
+
 						else:
 							message = '@{} you have already given out a Kudos today. `Great job!`'.format(giver_name)
 
