@@ -184,7 +184,7 @@ def parse_slack_events(slack_events):
 
 if __name__ == "__main__":
 
-	print(os.environ.get('SLACK_BOT_TOKEN_TEST'))
+	# print(os.environ.get('SLACK_BOT_TOKEN_TEST'))
 
 	if slack_client.rtm_connect():
 		print("Kudobot connected and running!")
